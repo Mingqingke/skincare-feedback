@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no">
+    <title>满分同学 · 青少年护肤</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.25);
+            --glass-border: rgba(255, 255, 255, 0.55);
+            --text-primary: #1a2f3a;
+            --accent: #7ab8c0;
+            --radius-xl: 40px;
+            --radius-lg: 32px;
+            --radius-md: 24px;
+            --radius-sm: 18px;
+            --transition-smooth: 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+            --transition-bounce: 0.6s cubic-bezier(0.34, 1.45, 0.64, 1);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent;
+        }
+        html, body {
+            scrollbar-width: none; -ms-overflow-style: none; overscroll-behavior: none;
+        }
+        html::-webkit-scrollbar, body::-webkit-scrollbar, *::-webkit-scrollbar {
+            display: none; width: 0; height: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            min-height: 100vh; min-height: 100dvh;
+            display: flex; align-items: center; justify-content: center;
+            background: #e8f1f2;
+            overflow-x: hidden; overflow-y: auto;
+            position: relative;
+            -webkit-font-smoothing: antialiased;
+            padding-bottom: var(--safe-bottom);
+        }
+
+        /* 液态背景 */
+        .liquid-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+        .liquid-orb { position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.6; will-change: transform; animation-timing-function: ease-in-out; animation-iteration-count: infinite; mix-blend-mode: soft-light; }
+        .liquid-orb:nth-child(1) { width: 65vmax; height: 65vmax; background: radial-gradient(circle at 35% 35%, #c4f0f8 0%, #a0dce8 30%, #7cc8d8 60%, transparent 100%); top: -25%; left: -25%; animation: liquid-drift-1 14s infinite alternate; }
+        .liquid-orb:nth-child(2) { width: 55vmax; height: 55vmax; background: radial-gradient(circle at 60% 40%, #d0f8e0 0%, #a8e8c0 25%, #80d8a8 55%, transparent 100%); bottom: -28%; right: -20%; animation: liquid-drift-2 17s infinite alternate; animation-delay: -4s; }
+        .liquid-orb:nth-child(3) { width: 48vmax; height: 48vmax; background: radial-gradient(circle at 50% 50%, #e8f8f8 0%, #c8e8f0 30%, #a0d8e8 60%, transparent 100%); top: 30%; left: 28%; animation: liquid-drift-3 15s infinite alternate; animation-delay: -7s; }
+        .liquid-orb:nth-child(4) { width: 42vmax; height: 42vmax; background: radial-gradient(circle at 45% 55%, #d8f8e8 0%, #b8e8d0 35%, #90dcc0 65%, transparent 100%); top: 50%; right: 24%; animation: liquid-drift-4 18s infinite alternate; animation-delay: -2s; }
+        @keyframes liquid-drift-1 { 0% { transform: translate(0,0) scale(1) rotate(0deg); opacity:0.7; } 100% { transform: translate(7vw,5vh) scale(1.08) rotate(4deg); opacity:0.85; } }
+        @keyframes liquid-drift-2 { 0% { transform: translate(0,0) scale(1) rotate(0deg); opacity:0.65; } 100% { transform: translate(-8vw,-7vh) scale(1.1) rotate(-3deg); opacity:0.8; } }
+        @keyframes liquid-drift-3 { 0% { transform: translate(0,0) scale(1) rotate(0deg); opacity:0.6; } 100% { transform: translate(5vw,-6vh) scale(1.06) rotate(2deg); opacity:0.75; } }
+        @keyframes liquid-drift-4 { 0% { transform: translate(0,0) scale(1) rotate(0deg); opacity:0.65; } 100% { transform: translate(-6vw,6vh) scale(1.09) rotate(-2.5deg); opacity:0.85; } }
+
+        .sparkle-container { position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+        .sparkle { position: absolute; background: rgba(255,255,255,0.9); border-radius: 50%; animation: sparkle-float linear infinite; box-shadow: 0 0 12px 4px rgba(255,255,255,0.7); will-change: transform, opacity; }
+        @keyframes sparkle-float { 0% { transform: translateY(0) translateX(0) scale(1); opacity:0; } 5% { opacity:0.9; } 30% { opacity:0.3; } 55% { opacity:0.1; } 72% { opacity:0.5; } 90% { opacity:0.15; } 100% { transform: translateY(-95vh) translateX(35px) scale(0.2); opacity:0; } }
+
+        /* 品牌出场 */
+        .brand-intro { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(232,241,242,0.92); backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px); transition: opacity 0.8s ease, visibility 0.8s; }
+        .brand-intro.fade-out { opacity:0; pointer-events:none; visibility:hidden; }
+        .brand-logo { display:flex; align-items:baseline; gap:12px; font-weight:800; color:#1a2f3a; position:relative; }
+        .word-manfen { font-size: clamp(3rem, 12vw, 5.5rem); animation: slideInLeft 1s ease forwards; opacity:0; letter-spacing:-2px; }
+        .word-tongxue { font-size: clamp(2.5rem, 10vw, 4.6rem); animation: slideInRight 1s ease forwards; opacity:0; margin-top:0.7rem; letter-spacing:-1px; }
+        .brand-sub { position:absolute; bottom:-65px; left:50%; transform:translateX(-50%); font-size: clamp(0.8rem, 2vw, 1.1rem); color:#4a6b70; letter-spacing:4px; white-space:nowrap; animation:fadeInUp 0.9s ease 0.8s forwards; opacity:0; }
+        @keyframes slideInLeft { 0%{transform:translateX(-150px) rotate(-10deg); opacity:0;} 100%{transform:translateX(0) rotate(0deg); opacity:1;} }
+        @keyframes slideInRight { 0%{transform:translateX(150px) rotate(10deg); opacity:0;} 100%{transform:translateX(0) rotate(0deg); opacity:1;} }
+        @keyframes fadeInUp { 0%{transform:translateX(-50%) translateY(30px); opacity:0;} 100%{transform:translateX(-50%) translateY(0); opacity:1;} }
+
+        .app-container { position:relative; z-index:10; width:94vw; max-width:480px; margin:20px auto; display:flex; flex-direction:column; gap:24px; transition:opacity 0.6s ease; padding:0 8px; }
+        .app-hidden { opacity:0; pointer-events:none; }
+
+        .glass-card {
+            background: rgba(255,255,255,0.22); border:1px solid rgba(255,255,255,0.55); border-radius:var(--radius-lg);
+            backdrop-filter: blur(34px) saturate(2.4); -webkit-backdrop-filter: blur(34px) saturate(2.4);
+            box-shadow:0 14px 45px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(255,255,255,0.75);
+            padding: clamp(16px,4vw,24px) clamp(14px,3vw,20px); position:relative; overflow:hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease; animation: cardFadeIn 0.6s ease both;
+        }
+        .glass-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,0.98), transparent); opacity:0.95; pointer-events:none; z-index:2; }
+        .glass-card::after { content:''; position:absolute; bottom:-85px; right:-85px; width:220px; height:220px; background:radial-gradient(circle, rgba(255,255,255,0.5) 0%, transparent 70%); border-radius:50%; pointer-events:none; z-index:0; animation:card-glow 10s ease-in-out infinite; }
+        .glass-card>* { position:relative; z-index:1; }
+        @keyframes cardFadeIn { from{opacity:0; transform:translateY(25px);} to{opacity:1; transform:translateY(0);} }
+        @keyframes card-glow { 0%,100%{transform:scale(1) translate(0,0); opacity:0.5;} 50%{transform:scale(1.3) translate(-22px,-22px); opacity:0.85;} }
+
+        .btn-group { display:flex; gap:clamp(12px,3vw,20px); justify-content:center; margin-top:10px; flex-wrap:wrap; }
+        .login-btn {
+            width: clamp(130px,30vw,160px); height: clamp(50px,10vw,60px); border-radius:30px;
+            background: linear-gradient(135deg, #b8e6f0, #90d4e0); border:1px solid rgba(255,255,255,0.7);
+            color:#1a2f3a; font-weight:700; font-size: clamp(0.9rem,2vw,1.1rem);
+            cursor:pointer; transition: all 0.8s cubic-bezier(0.25,0.8,0.25,1.2);
+            box-shadow:0 12px 35px rgba(0,0,0,0.1); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+            display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden;
+        }
+        .login-btn:active { transform:scale(0.94); transition:transform 0.2s ease; }
+        .ripple-effect { position:absolute; border-radius:50%; background:rgba(255,255,255,0.8); transform:scale(0); animation:ripple-anim 0.6s ease-out; pointer-events:none; }
+        @keyframes ripple-anim { to{transform:scale(4); opacity:0;} }
+
+        .modal-overlay { position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.22); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); display:flex; align-items:center; justify-content:center; visibility:hidden; opacity:0; transition:visibility 0.5s, opacity 0.5s ease; }
+        .modal-overlay.active { visibility:visible; opacity:1; }
+        .modal-panel {
+            background:rgba(255,255,255,0.48); backdrop-filter:blur(50px) saturate(3); -webkit-backdrop-filter:blur(50px) saturate(3);
+            border-radius:var(--radius-xl); border:1px solid rgba(255,255,255,0.75); padding: clamp(24px,5vw,32px) clamp(16px,3vw,24px);
+            width:92vw; max-width:440px; transform:scale(0.65); transition:transform 0.8s cubic-bezier(0.25,0.8,0.25,1.2);
+            box-shadow:0 30px 70px rgba(0,0,0,0.18);
+        }
+        .modal-overlay.active .modal-panel { transform:scale(1); }
+        .modal-panel.fullscreen { position:fixed; inset:0; width:100vw; height:100vh; height:100dvh; max-width:none; border-radius:0; transform:scale(1); margin:0; overflow-y:auto; scrollbar-width:none; padding-top: env(safe-area-inset-top, 0px); padding-bottom: calc(20px + var(--safe-bottom)); }
+        .modal-panel.fullscreen::-webkit-scrollbar { display:none; }
+
+        .input-field { width:100%; padding: clamp(12px,3vw,15px) clamp(14px,3vw,18px); border:1px solid rgba(180,200,210,0.6); border-radius:var(--radius-sm); font-size: clamp(0.9rem,2vw,1rem); background:rgba(255,255,255,0.5); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); outline:none; transition:all 0.3s ease; font-family:inherit; }
+        .input-field:focus { border-color:#7ab8c0; box-shadow:0 0 0 5px rgba(122,184,192,0.2); background:rgba(255,255,255,0.7); }
+
+        .btn-primary { width:100%; padding: clamp(12px,3vw,15px); border:none; border-radius:30px; background: linear-gradient(135deg, #7ab8c0, #5a9aa0); color:#fff; font-weight:700; font-size: clamp(0.9rem,2vw,1rem); box-shadow:0 12px 32px rgba(90,154,160,0.45); cursor:pointer; transition: all 0.3s ease; font-family:inherit; }
+        .btn-primary:active { transform:scale(0.96); }
+
+        .top-nav { position:fixed; top:0; left:0; right:0; z-index:50; padding: calc(12px + env(safe-area-inset-top, 0px)) 20px 12px; background:rgba(255,255,255,0.35); backdrop-filter:blur(35px); -webkit-backdrop-filter:blur(35px); display:flex; justify-content:space-between; align-items:center; transform:translateY(-100%); transition:transform 0.6s cubic-bezier(0.22,0.61,0.36,1); border-bottom:1px solid rgba(255,255,255,0.5); }
+        .top-nav.visible { transform:translateY(0); }
+
+        .product-scroll { display:flex; gap:clamp(10px,2vw,16px); overflow-x:auto; padding:10px 0; scroll-snap-type:x mandatory; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+        .product-scroll::-webkit-scrollbar { display:none; }
+        .product-card { min-width: clamp(130px,25vw,150px); padding: clamp(16px,3vw,22px) clamp(12px,2vw,18px); border-radius:var(--radius-md); background:rgba(255,255,255,0.4); backdrop-filter:blur(25px); -webkit-backdrop-filter:blur(25px); border:1px solid rgba(255,255,255,0.65); scroll-snap-align:start; text-align:center; cursor:pointer; position:relative; overflow:hidden; flex-shrink:0; transition:transform 0.2s ease; }
+        .product-card:active { transform:scale(0.96); background:rgba(255,255,255,0.6); }
+
+        .toast { position:fixed; top:30px; left:50%; transform:translateX(-50%) translateY(-120px); z-index:400; padding:14px 28px; border-radius:30px; background:rgba(25,35,45,0.9); color:#fff; backdrop-filter:blur(25px); -webkit-backdrop-filter:blur(25px); transition:transform 0.5s cubic-bezier(0.34,1.45,0.64,1); font-weight:500; }
+        .toast.show { transform:translateX(-50%) translateY(0); }
+
+        @keyframes shake { 0%,100%{transform:translateX(0);} 20%{transform:translateX(-8px);} 40%{transform:translateX(8px);} 60%{transform:translateX(-4px);} 80%{transform:translateX(4px);} }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (min-width:768px) { .app-container{max-width:520px;} .modal-panel{max-width:480px;} }
+        @media (min-width:1024px) { .app-container{max-width:600px;} .modal-panel{max-width:500px;} }
+    </style>
+</head>
+<body>
+<div class="liquid-bg">
+    <div class="liquid-orb"></div><div class="liquid-orb"></div><div class="liquid-orb"></div><div class="liquid-orb"></div>
+</div>
+<div class="sparkle-container" id="sparkleContainer"></div>
+
+<div class="brand-intro" id="brandIntro">
+    <div class="brand-logo">
+        <span class="word-manfen">满分</span>
+        <span class="word-tongxue">同学</span>
+        <span class="brand-sub">专注青少年护肤</span>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<div class="app-container app-hidden" id="appContainer">
+    <div class="glass-card" style="animation-delay:0.2s;">
+        <div style="text-align:center;font-size:clamp(2rem,5vw,2.6rem);font-weight:800;color:#1a2f3a;">满分同学</div>
+        <div style="text-align:center;font-size:clamp(0.7rem,1.5vw,0.8rem);color:#4a6b70;letter-spacing:3px;margin-bottom:22px;">MANFEN · 青少年护肤</div>
+        <div class="btn-group">
+            <button class="login-btn tourist" id="btnTourist">🧴 游客模式</button>
+            <button class="login-btn dev" id="btnDev">⚙️ 品牌管理</button>
+        </div>
+        <div style="text-align:center;margin-top:18px;">
+            <button class="login-btn" id="btnStory" style="width:auto;padding:0 24px;background:linear-gradient(135deg,#c8e6d8,#a0d0b8);">📖 品牌故事</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-panel" id="modalPanel"></div>
+</div>
+<div class="top-nav" id="topNav">
+    <span style="font-weight:800;color:#1a2f3a;">满分同学</span>
+    <span style="font-size:0.8rem;color:#3a4a60;" id="navTitle"></span>
+    <button id="btnCloseNav" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#3a4a60;">✕</button>
+</div>
+
+<script>
+(function() {
+    // ====================== Supabase 安全初始化 ======================
+    let supabaseClient = null;
+    try {
+        if (typeof supabase !== 'undefined') {
+            const { createClient } = supabase;
+            supabaseClient = createClient(
+                'https://awyylzqijacnaktpxwoo.supabase.co',
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3eXlsenFpamFjbmFrdHB4d29vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxMjU1NTMsImV4cCI6MjA5ODcwMTU1M30.JZ_DF0RkzwoHh-bpH7aF1wiWxAbpqQgc5gIhj55K_MI'
+            );
+            console.log('✅ Supabase 已连接');
+        } else {
+            console.warn('⚠️ Supabase CDN 未加载，将使用本地存储');
+        }
+    } catch (e) {
+        console.error('Supabase 初始化失败，将使用本地存储:', e);
+    }
+
+    const DEV_NAME = '明鲭培', DEV_PASS = 'manfen0101';
+    const STORAGE_KEY = 'manfen_feedback_v5';
+    const PRODUCTS = [
+        { icon: '💧', name: '舒缓控油喷雾', desc: '即刻镇静·平衡水油' },
+        { icon: '🧴', name: '长效补水保湿乳', desc: '48h锁水·清爽不黏' },
+        { icon: '🧼', name: '洗卸二合一洗面奶', desc: '温和清洁·卸除淡妆' },
+        { icon: '✨', name: '水杨酸精华液', desc: '疏通毛孔·改善痘痘' },
+        { icon: '💦', name: '肌肤澎湃水润面膜', desc: '密集补水·水光肌' }
+    ];
+
+    const $ = id => document.getElementById(id);
+    const brandIntro = $('brandIntro'), appContainer = $('appContainer'), modalOverlay = $('modalOverlay'),
+          modalPanel = $('modalPanel'), topNav = $('topNav'), navTitle = $('navTitle'), toast = $('toast');
+
+    // 粒子生成
+    for (let i=0;i<32;i++) {
+        const s = document.createElement('div'); s.className='sparkle';
+        s.style.left=Math.random()*92+'%'; s.style.top=Math.random()*100+'%';
+        s.style.width=(2+Math.random()*4)+'px'; s.style.height=s.style.width;
+        s.style.animationDuration=(14+Math.random()*24)+'s'; s.style.animationDelay=Math.random()*22+'s';
+        $('sparkleContainer').appendChild(s);
+    }
+
+    let toastTimer;
+    function showToast(msg){ clearTimeout(toastTimer); toast.textContent=msg; toast.classList.add('show'); toastTimer=setTimeout(()=>toast.classList.remove('show'),2500); }
+
+    function addRipple(e, el) {
+        const ripple = document.createElement('span'); ripple.className='ripple-effect';
+        const rect = el.getBoundingClientRect(), size = Math.max(rect.width, rect.height);
+        ripple.style.width=ripple.style.height=size+'px';
+        ripple.style.left=e.clientX-rect.left-size/2+'px';
+        ripple.style.top=e.clientY-rect.top-size/2+'px';
+        el.appendChild(ripple);
+        ripple.addEventListener('animationend',()=>ripple.remove());
+    }
+
+    // 出场动画（无论Supabase是否成功，都会执行）
+    setTimeout(()=>{ brandIntro.classList.add('fade-out'); setTimeout(()=>appContainer.classList.remove('app-hidden'),400); },2400);
+
+    function openModal(html, full=false){
+        modalPanel.innerHTML = `<div style="animation: fadeIn 0.5s ease;">${html}</div>`;
+        modalPanel.classList.toggle('fullscreen', full);
+        modalOverlay.classList.add('active');
+        if(full){ topNav.classList.add('visible'); document.body.style.overflow='hidden'; }
+    }
+    function closeModal() {
+        modalOverlay.classList.remove('active');
+        topNav.classList.remove('visible');
+        setTimeout(() => {
+            modalPanel.classList.remove('fullscreen');
+            document.body.style.overflow = '';
+        }, 100);
+    }
+    modalOverlay.addEventListener('click', e => {
+        if (e.target === modalOverlay && !modalPanel.classList.contains('fullscreen')) closeModal();
+    });
+    $('btnCloseNav').addEventListener('click', closeModal);
+
+    // 游客按钮
+    $('btnTourist').addEventListener('click',(e)=>{ addRipple(e,e.currentTarget);
+        openModal(`
+            <h3 style="text-align:center;color:#1a2f3a;margin-bottom:18px;">🧴 欢迎体验满分同学</h3>
+            <div style="margin:14px 0;"><input class="input-field" id="tNick" placeholder="昵称（随意填写）"></div>
+            <div style="margin:14px 0;"><select class="input-field" id="tGrade"><option value="">选择年级</option><option>初中</option><option>高一</option><option>高二</option><option>高三</option><option>大学及以上</option></select></div>
+            <button class="btn-primary" id="btnEnter" style="margin-top:12px;">进入产品体验</button>
+            <button class="btn-primary" style="background:#b0c8c8;margin-top:8px;" id="btnSkip">跳过，直接进入</button>
+        `);
+        setTimeout(()=>{
+            const enter=()=>{ const nick=$('tNick').value.trim()||'同学'; const g=$('tGrade').value||'未知'; loadTourist(nick,g); };
+            $('btnEnter')?.addEventListener('click',enter); $('btnSkip')?.addEventListener('click',()=>loadTourist('同学','未知'));
+        },100);
+    });
+
+    // 开发者按钮
+    $('btnDev').addEventListener('click',(e)=>{ addRipple(e,e.currentTarget);
+        openModal(`
+            <h3 style="text-align:center;color:#1a2f3a;margin-bottom:18px;">⚙️ 品牌管理入口</h3>
+            <div style="margin:14px 0;"><input class="input-field" id="dName" placeholder="姓名"></div>
+            <div style="margin:14px 0;"><input class="input-field" type="password" id="dPass" placeholder="密码"></div>
+            <button class="btn-primary" id="btnDevLogin">进入管理面板</button>
+        `);
+        setTimeout(()=>{ $('btnDevLogin')?.addEventListener('click',()=>{ if($('dName').value.trim()===DEV_NAME && $('dPass').value.trim()===DEV_PASS) loadDevDashboard(); else { showToast('姓名或密码错误'); modalPanel.style.animation='shake 0.5s ease'; setTimeout(()=>modalPanel.style.animation='',500); } }); },100);
+    });
+
+    // 品牌故事
+    $('btnStory').addEventListener('click',(e)=>{ addRipple(e,e.currentTarget);
+        openModal(`
+            <h3>📖 满分同学的故事</h3>
+            <div class="glass-card" style="margin:16px 0; animation:slideUp 0.5s ease both;">“满分同学”由一群专注于青少年肌肤健康的研究者创立。我们发现青春期的皮肤容易出油、长痘，但市面上许多产品要么过于刺激，要么不够有效。于是我们精选温和成分，专为青少年设计，让每位同学都能自信面对每一天。</div>
+            <button class="btn-primary" id="btnBackStory">返回首页</button>
+        `);
+        $('btnBackStory')?.addEventListener('click', closeModal);
+    });
+
+    function loadTourist(nick, grade) {
+        const html = `
+            <div style="padding:20px; animation: fadeIn 0.5s ease;">
+                <h2 style="color:#1a2f3a;">嗨，${nick}！</h2>
+                <p style="color:#4a6b70;margin:8px 0 18px;">先了解明星单品，再填写反馈问卷。</p>
+                <div class="product-scroll" id="prodScroll"></div>
+                <button class="btn-primary" id="btnSurvey" style="margin-top:22px;">📋 填写反馈问卷</button>
+                <button class="btn-primary" style="background:#a8c8c0;margin-top:10px;" id="btnKnowledge">🔬 成分小科普</button>
+                <button class="btn-primary" style="background:#c8b8a0;margin-top:10px;" id="btnRoutine">🧴 护肤步骤指南</button>
+            </div>`;
+        openModal(html, true); navTitle.textContent = '游客模式';
+        setTimeout(() => {
+            const scroll = $('prodScroll');
+            if (scroll) scroll.innerHTML = PRODUCTS.map((p,i)=>`
+                <div class="product-card" style="animation:slideUp 0.6s ${0.1*i}s ease both;">
+                    <div style="font-size:2.5rem;">${p.icon}</div>
+                    <div style="font-weight:700;margin:8px 0;">${p.name}</div>
+                    <div style="font-size:0.7rem;">${p.desc}</div>
+                </div>`).join('');
+            document.querySelectorAll('.product-card').forEach(c=>c.addEventListener('click',function(e){addRipple(e,this);}));
+            $('btnSurvey')?.addEventListener('click',()=>loadSurvey(nick,grade));
+            $('btnKnowledge')?.addEventListener('click',()=>loadKnowledge());
+            $('btnRoutine')?.addEventListener('click',()=>loadRoutine());
+        }, 200);
+    }
+
+    function loadKnowledge() {
+        modalPanel.innerHTML = `
+            <div style="padding:20px; animation: fadeIn 0.5s ease;">
+                <h3>🔬 成分小科普</h3>
+                <div class="glass-card" style="margin:14px 0; animation:slideUp 0.5s ease both;"><strong>水杨酸</strong> · 帮助清理老废角质，适合油脂分泌旺盛、毛孔堵塞明显的人群。</div>
+                <div class="glass-card" style="margin:14px 0; animation:slideUp 0.5s 0.1s ease both;"><strong>玻尿酸</strong> · 经典保湿成分，帮助肌肤维持水润感，适合多数肤质。</div>
+                <div class="glass-card" style="margin:14px 0; animation:slideUp 0.5s 0.2s ease both;"><strong>神经酰胺</strong> · 常用于屏障护理，帮助减少干燥紧绷，适合换季不适肌肤。</div>
+                <button class="btn-primary" id="btnBackProd">返回产品页</button>
+            </div>`;
+        $('btnBackProd').addEventListener('click', ()=>loadTourist('同学','未知'));
+    }
+
+    function loadRoutine() {
+        modalPanel.innerHTML = `
+            <div style="padding:20px; animation: fadeIn 0.5s ease;">
+                <h3>🧴 护肤步骤指南</h3>
+                <div class="glass-card" style="margin:14px 0; animation:slideUp 0.5s ease both;"><strong>早间：</strong>温和清洁或清水 → 控油喷雾 → 保湿乳 → 防晒</div>
+                <div class="glass-card" style="margin:14px 0; animation:slideUp 0.5s 0.1s ease both;"><strong>晚间：</strong>洗卸二合一 → 精华液按需 → 保湿乳 → 每周1-2次面膜</div>
+                <button class="btn-primary" id="btnBackRoutine">返回产品页</button>
+            </div>`;
+        $('btnBackRoutine').addEventListener('click', ()=>loadTourist('同学','未知'));
+    }
+
+    // 提交问卷（优先使用Supabase，失败则降级到localStorage）
+    async function submitSurvey(surveyData) {
+        if (supabaseClient) {
+            try {
+                const { error } = await supabaseClient.from('feedback').insert([surveyData]);
+                if (!error) return true;
+                console.warn('云端提交失败，已保存到本地:', error);
+            } catch (e) {
+                console.warn('云端连接异常，已保存到本地:', e);
+            }
+        }
+        // 降级到本地存储
+        const list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        list.push({ ...surveyData, savedLocally: true });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+        return true;
+    }
+
+    function loadSurvey(nick,grade) {
+        const html = `
+            <div style="padding:20px; animation: fadeIn 0.5s ease; max-width:550px; margin:0 auto;">
+                <h3>📋 使用反馈问卷</h3>
+                ${[0,1,2,3,4,5,6].map(i=>`
+                <div class="glass-card" style="margin:14px 0; animation:slideUp 0.5s ${0.1*i}s ease both;">
+                    <label style="font-weight:700;color:#3a4a60;">${['1. 肤质','2. 使用天数','3. 各产品评分','4. 整体使用感受','5. 最喜欢的产品','6. 是否愿意推荐','7. 想说的话'][i]}</label>
+                    ${i===0?`<select class="input-field" id="qSkin"><option>油性</option><option>干性</option><option>混合</option><option>敏感</option><option>中性</option></select>`:''}
+                    ${i===1?`<input class="input-field" type="number" id="qDays" placeholder="例如：14">`:''}
+                    ${i===2?`<div id="starBox"></div>`:''}
+                    ${i===3?`<textarea class="input-field" id="qFeel" placeholder="选填"></textarea>`:''}
+                    ${i===4?`<select class="input-field" id="qFav">${PRODUCTS.map(p=>`<option>${p.name}</option>`).join('')}</select>`:''}
+                    ${i===5?`<select class="input-field" id="qRec"><option>👍 愿意</option><option>👎 不愿意</option></select>`:''}
+                    ${i===6?`<textarea class="input-field" id="qMsg" placeholder="任何建议~"></textarea>`:''}
+                </div>`).join('')}
+                <button class="btn-primary" id="btnSubmit">✅ 提交反馈</button>
+            </div>`;
+        modalPanel.innerHTML = html; modalPanel.scrollTop = 0;
+        setTimeout(() => {
+            const starBox = $('starBox');
+            if (starBox) starBox.innerHTML = PRODUCTS.map((p,i)=>`
+                <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0;">
+                    <span>${p.icon} ${p.name}</span>
+                    <div class="stars" data-p="${p.name}" style="display:flex;gap:4px;font-size:26px;">
+                        ${[1,2,3,4,5].map(n=>`<span class="star" data-n="${n}" style="color:#c9d7db;cursor:pointer;transition:color 0.2s,transform 0.2s;">★</span>`).join('')}
+                    </div>
+                </div>`).join('');
+            document.querySelectorAll('.star').forEach(s=>s.addEventListener('click',function(){
+                const v=parseInt(this.dataset.n);
+                const row=this.parentNode;
+                row.querySelectorAll('.star').forEach((st,idx)=>{ st.style.color = idx<v ? '#ffc94a' : '#c9d7db'; st.style.transform = idx<v ? 'scale(1.15)' : 'scale(1)'; });
+            }));
+            $('btnSubmit')?.addEventListener('click', async ()=>{
+                const ratings={};
+                document.querySelectorAll('.stars').forEach(row=>{
+                    const name=row.dataset.p;
+                    const active=row.querySelectorAll('.star[style*="ffc94a"]').length;
+                    ratings[name]=active||0;
+                });
+                const survey={
+                    nickname:nick,
+                    grade:grade,
+                    skin_type:$('qSkin')?.value||'',
+                    usage_days:parseInt($('qDays')?.value)||0,
+                    ratings,
+                    overall_feeling:$('qFeel')?.value||'',
+                    favorite_product:$('qFav')?.value||'',
+                    recommend:$('qRec')?.value?.includes('愿意')||false,
+                    message:$('qMsg')?.value||'',
+                    submit_time:new Date().toISOString()
+                };
+                await submitSurvey(survey);
+                showToast('感谢反馈！');
+                setTimeout(() => closeModal(), 1800);
+            });
+        }, 200);
+    }
+
+    // 开发者仪表盘（优先从Supabase加载，失败则从localStorage加载）
+    async function loadDevDashboard() {
+        let surveys = [];
+        if (supabaseClient) {
+            try {
+                const { data, error } = await supabaseClient.from('feedback').select('*').order('created_at', { ascending: false });
+                if (!error && data) surveys = data;
+            } catch (e) { console.warn('加载云端数据失败，尝试本地数据'); }
+        }
+        if (!surveys.length) {
+            surveys = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        }
+        const html = `
+            <div style="padding:20px; animation: fadeIn 0.5s ease; max-width:600px; margin:0 auto;">
+                <h2>📊 品牌管理面板</h2>
+                <p style="color:#5a7a80;">共 <strong>${surveys.length}</strong> 份反馈</p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin:16px 0;">
+                    <button class="btn-primary" style="flex:1;" id="tabOverview">📈 总览</button>
+                    <button class="btn-primary btn-secondary" style="flex:1;" id="tabList">📋 列表</button>
+                    <button class="btn-primary btn-secondary" style="flex:1;" id="tabAnalysis">📊 分析</button>
+                    <button class="btn-primary btn-secondary" style="flex:1;" id="tabAI">🤖 AI总结</button>
+                    <button class="btn-primary btn-secondary" style="flex:1;" id="tabExport">📥 导出</button>
+                </div>
+                <div id="devContent" style="animation: fadeIn 0.4s ease;"></div>
+            </div>`;
+        openModal(html, true); navTitle.textContent = '品牌管理';
+        setTimeout(() => {
+            $('tabOverview').addEventListener('click', ()=>renderOverview(surveys));
+            $('tabList').addEventListener('click', ()=>renderList(surveys));
+            $('tabAnalysis').addEventListener('click', ()=>renderAnalysis(surveys));
+            $('tabAI').addEventListener('click', ()=>generateAI(surveys));
+            $('tabExport').addEventListener('click', ()=>renderExport(surveys));
+            $('tabOverview').click();
+        }, 200);
+    }
+
+    function renderOverview(surveys) {
+        if (!surveys.length) { $('devContent').innerHTML = '<div class="glass-card" style="text-align:center;">暂无数据</div>'; return; }
+        const total = surveys.length;
+        const avg = (surveys.reduce((a,b)=>{ const v=Object.values(b.ratings||{}); return a+(v.length?v.reduce((x,y)=>x+y,0)/v.length:0); },0)/total).toFixed(1);
+        const rec = Math.round(surveys.filter(d=>d.recommend).length/total*100);
+        const best = PRODUCTS.map(p=>({name:p.name,avg:surveys.reduce((a,b)=>a+(b.ratings[p.name]||0),0)/total})).sort((a,b)=>b.avg-a.avg)[0]?.name||'-';
+        $('devContent').innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+                <div class="glass-card" style="text-align:center; animation:slideUp 0.6s ease both;"><strong style="font-size:1.8rem;">${total}</strong><br>反馈总数</div>
+                <div class="glass-card" style="text-align:center; animation:slideUp 0.6s 0.1s ease both;"><strong style="font-size:1.8rem;">${avg}</strong><br>平均评分</div>
+                <div class="glass-card" style="text-align:center; animation:slideUp 0.6s 0.2s ease both;"><strong style="font-size:1.8rem;">${rec}%</strong><br>推荐率</div>
+                <div class="glass-card" style="text-align:center; animation:slideUp 0.6s 0.3s ease both;"><strong style="font-size:1.4rem;">${best.slice(0,4)}</strong><br>明星产品</div>
+            </div>`;
+    }
+
+    function renderList(surveys) {
+        if (!surveys.length) { $('devContent').innerHTML = '<div class="glass-card" style="text-align:center;">暂无记录</div>'; return; }
+        $('devContent').innerHTML = surveys.map((d,i)=>`
+            <div class="glass-card" style="margin:8px 0; animation:slideUp 0.5s ${0.05*i}s ease both; cursor:pointer;" onclick="this.querySelector('.det').style.display=this.querySelector('.det').style.display==='none'?'block':'none'">
+                <div style="display:flex;justify-content:space-between;"><strong>${d.nickname}</strong><span style="font-size:0.7rem;">${new Date(d.submit_time||d.submitTime).toLocaleDateString()}</span></div>
+                <div style="font-size:0.8rem;">肤质：${d.skin_type||d.skinType} · ${d.usage_days||d.usageDays}天 · ${d.recommend?'👍':'👎'}</div>
+                <div class="det" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,0.06);">
+                    评分：${Object.entries(d.ratings||{}).map(([k,v])=>`${k}:${v}分`).join('、')}<br>
+                    感受：${d.overall_feeling||d.overallFeeling||'无'}<br>最爱：${d.favorite_product||d.favoriteProduct||'无'}<br>留言：${d.message||'无'}
+                </div>
+            </div>`).join('');
+    }
+
+    function renderAnalysis(surveys) {
+        if (!surveys.length) { $('devContent').innerHTML = '<div class="glass-card" style="text-align:center;">暂无数据</div>'; return; }
+        const skin = {}; surveys.forEach(d=>{ const k=d.skin_type||d.skinType||'未知'; skin[k]=(skin[k]||0)+1; });
+        $('devContent').innerHTML = `<div class="glass-card" style="animation:slideUp 0.6s ease both;"><strong>肤质分布</strong>${Object.entries(skin).map(([k,v])=>`<div style="margin:4px 0;">${k}：${v}人 (${Math.round(v/surveys.length*100)}%)</div>`).join('')}</div>`;
+    }
+
+    function generateAI(surveys) {
+        if (!surveys.length) { $('devContent').innerHTML='<div class="glass-card" style="text-align:center;">暂无数据</div>'; return; }
+        const total=surveys.length;
+        const recCount=surveys.filter(d=>d.recommend).length;
+        const recRate=Math.round(recCount/total*100);
+        const allScores=[]; surveys.forEach(d=>{ Object.values(d.ratings||{}).forEach(v=>{if(v)allScores.push(v);}); });
+        const avgScore=allScores.length?(allScores.reduce((a,b)=>a+b,0)/allScores.length).toFixed(1):'0';
+        const productStats=PRODUCTS.map(p=>({name:p.name,avg:surveys.reduce((a,b)=>a+(b.ratings[p.name]||0),0)/total})).sort((a,b)=>b.avg-a.avg);
+        const star=productStats[0], low=productStats[productStats.length-1];
+        const skinCount={}; surveys.forEach(d=>{const k=d.skin_type||d.skinType||'未知';skinCount[k]=(skinCount[k]||0)+1;});
+        const topSkin=Object.entries(skinCount).sort((a,b)=>b[1]-a[1])[0];
+        const comfort=surveys.filter(d=>d.overall_feeling&&(d.overall_feeling.includes('不适')||d.overall_feeling.includes('过敏')||d.overall_feeling.includes('刺痛'))).length;
+        const text=`📊 满分同学 · 智能反馈总结报告\n━━━━━━━━━━━━━━━━━━━━\n📋 本次共分析 ${total} 条有效反馈。\n\n✅ 整体满意度：平均评分 ${avgScore} / 5\n👍 推荐率：${recRate}% 的用户愿意推荐\n🏆 明星产品：${star.name}（均分 ${star.avg.toFixed(1)}）\n${low.avg<star.avg?`⚠️ 需关注产品：${low.name}（均分 ${low.avg.toFixed(1)}）\n`:''}\n👥 主要肤质：${topSkin[0]}（占比 ${Math.round(topSkin[1]/total*100)}%）\n${comfort>0?`🩺 不适感反馈：${comfort} 位用户提及使用后不适，建议关注温和度`:'🩺 无不适用反馈，产品温和度良好'}\n\n💡 改进建议：\n1. ${star.name} 表现突出，可作为主打产品推广\n2. 针对${topSkin[0]}用户群体设计专属方案\n3. 持续关注用户反馈，优化产品体验`;
+        const id='ai'+Date.now(); $('devContent').innerHTML=`<div class="glass-card" id="${id}" style="white-space:pre-wrap;line-height:1.8;min-height:200px;"></div>`;
+        const el=$(id); let i=0;
+        const timer=setInterval(()=>{ if(el&&i<text.length){el.textContent+=text[i];i++;el.scrollTop=el.scrollHeight;}else clearInterval(timer); },15);
+    }
+
+    function renderExport(surveys) {
+        $('devContent').innerHTML=`
+            <div class="glass-card" style="text-align:center;">
+                <button class="btn-primary" id="btnJSON" style="margin-bottom:8px;">📥 导出 JSON</button>
+                <button class="btn-primary btn-secondary" id="btnCSV" style="margin-bottom:8px;">📥 导出 CSV</button>
+            </div>`;
+        $('btnJSON').addEventListener('click',()=>{ const blob=new Blob([JSON.stringify(surveys,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='满分同学_数据.json'; a.click(); showToast('JSON已下载'); });
+        $('btnCSV').addEventListener('click',()=>{ let csv='昵称,年级,肤质,天数,推荐,最爱,评分,感受,留言,时间\n'; surveys.forEach(d=>{ csv+=`"${d.nickname}","${d.grade}","${d.skin_type||d.skinType}",${d.usage_days||d.usageDays},"${d.recommend?'是':'否'}","${d.favorite_product||d.favoriteProduct}","${Object.entries(d.ratings||{}).map(([k,v])=>`${k}:${v}`).join(';')}","${d.overall_feeling||d.overallFeeling}","${d.message}","${d.submit_time||d.submitTime}"\n`; }); const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='满分同学_数据.csv'; a.click(); showToast('CSV已下载'); });
+    }
+
+    document.addEventListener('click',function(e){ const target=e.target.closest('.glass-card,.product-card,.login-btn,.btn-primary'); if(target) addRipple(e,target); });
+})();
+</script>
+</body>
+</html>
